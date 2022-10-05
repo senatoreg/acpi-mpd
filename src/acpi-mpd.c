@@ -96,6 +96,8 @@ setup_mpd(mpd_info_t* mpd_info) {
     }
 
     ret = mpd_connection_set_keepalive(mpd_info->mpd_conn, true);
+    if (!ret)
+	fprintf(stderr, "setup_mpd: KeepAlive not enabled.\n");
     return ret ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
@@ -114,32 +116,36 @@ int
 send_cmd(mpd_cmd_t cmd, mpd_info_t* mpd_info) {
     char buffer[BACKLIGHT_BUFFER_SIZE];
     struct mpd_status* cur_status;
-    int err = 0;
-    
-    switch(cmd) {
-    case PLAY:
-	if ((cur_status = mpd_run_status(mpd_info->mpd_conn)) != NULL) {
-	    if (mpd_status_get_state(cur_status) == MPD_STATE_STOP)
-		err = mpd_run_play(mpd_info->mpd_conn);
-	    else
-		err = mpd_run_toggle_pause(mpd_info->mpd_conn);
+    int err = 0, ret;
+    int c = 3;
+
+    do {
+	switch(cmd) {
+	case PLAY:
+	    if ((cur_status = mpd_run_status(mpd_info->mpd_conn)) != NULL) {
+		if (mpd_status_get_state(cur_status) == MPD_STATE_STOP)
+		    err = mpd_run_play(mpd_info->mpd_conn);
+		else
+		    err = mpd_run_toggle_pause(mpd_info->mpd_conn);
+	    }
+	    break;
+	case STOP:
+	    err = mpd_run_stop(mpd_info->mpd_conn);
+	    break;
+	case PREV:
+	    err = mpd_run_previous(mpd_info->mpd_conn);
+	    break;
+	case NEXT:
+	    err = mpd_run_next(mpd_info->mpd_conn);
+	    break;
+	};
+	if (err == 0) {
+	    fprintf(stderr, "send_cmd: got error %d reconnecting\n", err);
+	    ret = close_mpd(mpd_info);
+	    ret = setup_mpd(mpd_info);
 	}
-	break;
-    case STOP:
-	err = mpd_run_stop(mpd_info->mpd_conn);
-	break;
-    case PREV:
-	err = mpd_run_previous(mpd_info->mpd_conn);
-	break;
-    case NEXT:
-	err = mpd_run_next(mpd_info->mpd_conn);
-	break;
-    };
-    if (err == 0) {
-	fprintf(stderr, "send_cmd: got error %d reconnecting\n", err);
-	close_mpd(mpd_info);
-	setup_mpd(mpd_info);
-    }
+	c--;
+    } while (err == 0 && c > -1);
  exit:
     return err == 1;
 }
