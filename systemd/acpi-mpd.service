@@ -1,0 +1,14 @@
+[Unit]
+Description=ACPI MPD control client daemon
+#Requires=acpid.service
+After=sound.target local-fs.target
+BindsTo=mpd.service
+ConditionUser=!root
+
+[Service]
+Type=exec
+EnvironmentFile=-%h/.config/acpi-mpd/acpi-mpd.conf
+ExecStart=/usr/bin/acpi-mpd $ACPI_MPD_OPTIONS
+
+[Install]
+WantedBy=default.target

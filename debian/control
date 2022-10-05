@@ -1,0 +1,20 @@
+Source: acpi-mpd
+Section: admin
+Priority: optional
+Maintainer: Giovanni Senatore <giovanni.senatore@gmail.com>
+Build-Depends: debhelper-compat (= 12),
+ clang,
+ make,
+ libmpdclient-dev,
+ autoconf,
+ automake,
+Standards-Version: 4.5.0
+Homepage: https://github.com/senatoreg/acpi-mpd
+#Vcs-Browser: https://salsa.debian.org/debian/acpi-mpd
+#Vcs-Git: https://salsa.debian.org/debian/acpi-mpd.git
+
+Package: acpi-mpd
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, acpid
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
