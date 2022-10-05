@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <error.h>
 #include <errno.h>
 #include <string.h>
@@ -17,6 +18,7 @@
 #define BACKLIGHT_BUFFER_SIZE 16
 
 typedef struct _mpd_info {
+    char *mpd_host;
     struct mpd_connection* mpd_conn;
     int acpid_fd;
     int idle_factor;
@@ -76,8 +78,9 @@ setup_acpi(char* acpid_socketfile, mpd_info_t* mpd_info) {
 }
 
 int
-setup_mpd(char* host, mpd_info_t* mpd_info) {
-    mpd_info->mpd_conn = mpd_connection_new(host, 0, 0);
+setup_mpd(mpd_info_t* mpd_info) {
+    bool ret;
+    mpd_info->mpd_conn = mpd_connection_new(mpd_info->mpd_host, 0, 0);
 
     // error handling
     if (mpd_info->mpd_conn == NULL) {
@@ -87,11 +90,13 @@ setup_mpd(char* host, mpd_info_t* mpd_info) {
     if (mpd_connection_get_error(mpd_info->mpd_conn) != MPD_ERROR_SUCCESS) {
 	fprintf(stderr, "setup_mpd: got error %s connecting to %s\n",
 		mpd_connection_get_error_message(mpd_info->mpd_conn),
-		host);
+		mpd_info->mpd_host);
 	mpd_connection_free(mpd_info->mpd_conn);
 	return EXIT_FAILURE;
     }
-    return EXIT_SUCCESS;
+
+    ret = mpd_connection_set_keepalive(mpd_info->mpd_conn, true);
+    return ret ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int
@@ -130,8 +135,11 @@ send_cmd(mpd_cmd_t cmd, mpd_info_t* mpd_info) {
 	err = mpd_run_next(mpd_info->mpd_conn);
 	break;
     };
-    if (err == 0)
-	fprintf(stderr, "send_cmd: got error %d\n", err);
+    if (err == 0) {
+	fprintf(stderr, "send_cmd: got error %d reconnecting\n", err);
+	close_mpd(mpd_info);
+	setup_mpd(mpd_info);
+    }
  exit:
     return err == 1;
 }
@@ -173,7 +181,6 @@ main(int argc, char** argv, char** envp) {
     int err, c, fd;
     char event[EVENT_BUFFER_SIZE];
     mpd_info_t* mpd_info;
-    char* mpd_host = NULL;
     struct sockaddr_un addr;
 
     mpd_info = malloc(sizeof(mpd_info_t));
@@ -183,7 +190,7 @@ main(int argc, char** argv, char** envp) {
 	switch (c)
 	    {
 	    case 'a':
-		mpd_host = optarg;
+		mpd_info->mpd_host = optarg;
 		break;
 	    default:
 		break;
@@ -193,7 +200,7 @@ main(int argc, char** argv, char** envp) {
     if ( (err=setup_acpi(acpid_socket, mpd_info)) != 0 )
         return err;
 
-    if ( (err=setup_mpd(mpd_host, mpd_info)) != 0 )
+    if ( (err=setup_mpd(mpd_info)) != 0 )
 	return err;
 
     err = acpi_event_handler(mpd_info);
