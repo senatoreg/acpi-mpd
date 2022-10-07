@@ -1,7 +1,7 @@
 [Unit]
 Description=ACPI MPD control client daemon
 #Requires=acpid.service
-After=sound.target local-fs.target
+After=sound.target local-fs.target mpd.service
 BindsTo=mpd.service
 ConditionUser=!root
 
