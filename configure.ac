@@ -25,4 +25,4 @@ AC_FUNC_REALLOC
 AC_FUNC_STRNLEN
 AC_CHECK_FUNCS([memset socket strerror])
 
-AC_OUTPUT([Makefile src/Makefile systemd/Makefile])
+AC_OUTPUT([Makefile src/Makefile])
