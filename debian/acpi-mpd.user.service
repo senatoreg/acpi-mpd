@@ -1,6 +1,6 @@
 [Unit]
 Description=ACPI MPD control client daemon
-#Requires=acpid.service
+ConditionPathExists=/var/run/acpid.socket
 After=sound.target local-fs.target mpd.service
 BindsTo=mpd.service
 ConditionUser=!root
