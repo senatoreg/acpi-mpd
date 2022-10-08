@@ -184,6 +184,8 @@ acpi_event_handler(mpd_info_t* mpd_info){
 int
 main(int argc, char** argv, char** envp) {
     char *acpid_socket = "/var/run/acpid.socket";
+    char *run_dir = getenv("XDG_RUNTIME_DIR");
+    int run_dir_len = strlen(run_dir);
     int err, c, fd;
     char event[EVENT_BUFFER_SIZE];
     mpd_info_t* mpd_info;
@@ -206,6 +208,11 @@ main(int argc, char** argv, char** envp) {
     if ( (err=setup_acpi(acpid_socket, mpd_info)) != 0 )
         return err;
 
+    if (!mpd_info->mpd_host) {
+	int l = run_dir_len + 12;
+	mpd_info->mpd_host = malloc(l);
+	snprintf(mpd_info->mpd_host, l, "%s/%s", run_dir, "mpd/socket");
+    }
     if ( (err=setup_mpd(mpd_info)) != 0 )
 	return err;
 
